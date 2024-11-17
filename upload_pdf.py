@@ -55,7 +55,7 @@ def upload_data_to_pinecone(index_name):
             metric='cosine',
             spec=ServerlessSpec(
                 cloud='aws',
-                region='us-east-1'
+                region=os.environ.get('PINECONE_ENV')
             )
         )
 
@@ -98,4 +98,4 @@ def upload_data_to_pinecone(index_name):
 
 # Main function
 if __name__ == "__main__":
-    upload_data_to_pinecone("vacation")
+    upload_data_to_pinecone(os.environ.get("INDEX_NAME"))

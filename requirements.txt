@@ -1,8 +1,11 @@
 flask
+flask_restx
 requests
+pinecone
 pinecone-client
 langchain
 pymupdf
 python-dotenv
 langchain-community
 langchain_pinecone
+langchain_ibm
