@@ -1,0 +1,69 @@
+{
+  "swagger": "2.0",
+  "basePath": "/",
+  "paths": {
+    "/api/chat": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "summary": "Receive a query and return a response using RAG",
+        "operationId": "post_chatbot",
+        "parameters": [
+          {
+            "name": "payload",
+            "required": true,
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/ChatQuery"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Duda RAG API",
+    "version": "1.0",
+    "description": "API of RAG using Pinecone and WatsonX, orchestrated by LangChain"
+  },
+  "produces": [
+    "application/json"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "tags": [
+    {
+      "name": "api",
+      "description": "Chatbot operations"
+    }
+  ],
+  "definitions": {
+    "ChatQuery": {
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Prompt from user"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "responses": {
+    "ParseError": {
+      "description": "When a mask can't be parsed"
+    },
+    "MaskError": {
+      "description": "When any error occurs on mask"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+flask
+requests
+pinecone-client
+langchain
+pymupdf
+python-dotenv
+langchain-community
+langchain_pinecone
