@@ -20,10 +20,26 @@ load_dotenv()
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
 PINECONE_ENV = os.environ.get("PINECONE_ENV")
 INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME")
-WATSONX_ACCESS_TOKEN = os.environ.get("WATSONX_ACCESS_TOKEN")
 WATSONX_PROJECT_ID = os.environ.get("WATSONX_PROJECT_ID")
 WATSONX_API_KEY = os.environ.get("WATSONX_API_KEY")
 WATSONX_API_URL = os.environ.get("WATSONX_API_URL")
+WATSONX_ACCESS_TOKEN = ""
+
+def get_iam_token(api_key):
+    """Obtém um token de acesso usando a API Key da IBM Cloud."""
+    url = "https://iam.cloud.ibm.com/identity/token"
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    data = {
+        "apikey": api_key,
+        "grant_type": "urn:ibm:params:oauth:grant-type:apikey"
+    }
+    response = requests.post(url, headers=headers, data=data)
+    if response.status_code != 200:
+        raise Exception(f"Failed to obtain IAM token: {response.status_code} - {response.text}")
+    
+    return response.json()["access_token"]
 
 # Initialize Pinecone
 pc = Pinecone(
@@ -63,7 +79,7 @@ chat_model = api.model('ChatQuery', {
 # Function to call the WatsonX LLM
 def call_watsonx_llm(query, context):
     """Call the WatsonX API to generate a response."""
-    url = "https://us-south.ml.cloud.ibm.com/ml/v1/text/generation?version=2023-05-29"
+    url = "https://us-south.ml.cloud.ibm.com/ml/v1/text/generation?version=2024-03-14"
     
     body = {
         "input": f"<|user|>{query}<|context|>{context}",
@@ -75,12 +91,13 @@ def call_watsonx_llm(query, context):
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {WATSONX_ACCESS_TOKEN}"
+        "Authorization": "Bearer " + os.environ.get('WATSONX_ACCESS_TOKEN')
     }
     
     response = requests.post(url, headers=headers, json=body)
     
     data = response.json()
+    print("data: ", data)
     return data['results'][0].get('generated_text', '') if 'results' in data else ''
 
 # Configuration of the LLM model for LangChain
@@ -122,6 +139,10 @@ class Chatbot(Resource):
     def post(self):
         """Receive a query and return a response using RAG."""
         try:
+            # Obter o token de acesso
+            access_token = get_iam_token(WATSONX_API_KEY)
+            os.environ['WATSONX_ACCESS_TOKEN'] = access_token
+
             data = request.json
             if not data:
                 print("No data received")
@@ -144,14 +165,13 @@ class Chatbot(Resource):
             if "result" not in result:
                 print("No result found in response")
                 return {"error": "No result found"}, 500
-
+  
             response_text = result.get("result", "No result found")
-            print("Response:", response_text)
             return jsonify({"response": response_text})
 
         except Exception as e:
             print("Exception occurred:", str(e))
             return jsonify({"error": str(e)}), 500
         
-if __name__ == "__main__":
+if __name__ == "__main__":  
     app.run(host='0.0.0.0', port=8000)

@@ -98,4 +98,4 @@ def upload_data_to_pinecone(index_name):
 
 # Main function
 if __name__ == "__main__":
-    upload_data_to_pinecone(os.environ.get("INDEX_NAME"))
+    upload_data_to_pinecone(os.environ.get("PINECONE_INDEX_NAME"))
