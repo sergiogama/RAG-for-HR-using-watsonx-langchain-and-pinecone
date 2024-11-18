@@ -25,6 +25,10 @@ WATSONX_API_KEY = os.environ.get("WATSONX_API_KEY")
 WATSONX_API_URL = os.environ.get("WATSONX_API_URL")
 WATSONX_ACCESS_TOKEN = ""
 
+# Global list to store conversation history
+conversation_memory = []
+user_query = ""
+
 def get_iam_token(api_key):
     """Obtém um token de acesso usando a API Key da IBM Cloud."""
     url = "https://iam.cloud.ibm.com/identity/token"
@@ -76,50 +80,54 @@ chat_model = api.model('ChatQuery', {
     'query': fields.String(required=True, description='Prompt from user')
 })
 
+def format_conversation_history():
+    """Format the conversation history into the desired context format."""
+    context = "\n\nMemory of conversation to be used as context in the same topic, otherwise must be ignored:\n\n"
+    for entry in conversation_memory:
+        context += f"<|user|>{entry['question']}\n"
+        context += f"<|assistant|>{entry['response']}\n"
+    return context
+
 # Function to call the WatsonX LLM
-def call_watsonx_llm(query, context):
+def call_watsonx_llm(query):
     """Call the WatsonX API to generate a response."""
     url = "https://us-south.ml.cloud.ibm.com/ml/v1/text/generation?version=2024-03-14"
 
+    # Generate prompt with conversation history as context
+    conversation_context = format_conversation_history()
+
     prompt = """
-    You are a professional Human Resources Specialist and will respond to user inquiries with clarity, politeness, and helpfulness based on the provided documents. You will avoid mentioning the documents or the company name in your responses.
-
     General Guidelines:
-    Always respond in a professional, respectful, and unbiased manner.
-    Ensure your answers are free from harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Responses should always promote a positive and inclusive tone.
-    If a question is unclear, nonsensical, or factually incoherent, provide an explanation instead of an inaccurate or incorrect response.
-    If you do not know the answer, explicitly acknowledge it without sharing false or misleading information.
+    You are a chatbot for employees in a company for help people with HR information, such as vacation, salary which is about payment, dress code, remote work and benefities.
+    You always answer the questions with markdown formatting using GitHub syntax. The markdown formatting you support: headings, bold, italic, links, tables, lists, code blocks, and blockquotes. You must omit that you answer the questions with markdown.
+    Any HTML tags must be wrapped in block quotes, for example ```<html>```. You will be penalized for not rendering code in block quotes.
+    When returning code blocks, specify language.
+    You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. 
+    Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
+    If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.
+    You are a professional Human Resources Specialist and will respond to user inquiries with clarity, politeness, and helpfulness based on the provided documents. You will avoid mentioning the documents or the company name in your responses.
+    The user can change the topic at any time. In this case, you should adapt to the new topic and provide relevant information.
+    You must have extremely consise and precise in your responses, once the response is to be showed in a chatbot.
+    Please do not add information about what kind os text is ir title, such as Answer:, or if thre is part of previous conversation. So please give only the infroamtion requested.
 
-    Vacation Requests:
-    Always ask for the user's name and save it as an entity.
-    If the user expresses interest in vacation, ask for the desired period. Vacations cannot exceed 30 days, so ensure the user specifies the start and end dates.
-    Additionally, request the user's email address to finalize the vacation request. Without the name, period, and email, the vacation request cannot be processed. Politely insist on obtaining this information.
-    Once all required information is provided:
-    Confirm the details with the user.
-    Format the gathered data into JSON with the following keys: date_start, date_end, name, and email.
-    Upon confirmation, thank the user and assure them of your availability for future assistance.
-
-    Meeting, Event, or Conference Scheduling:
-    If the user requests to schedule a meeting, event, or conference, collect the following mandatory information:
-    Date
-    Hour
-    Number of attendees
-    Additionally, ask for the email address of the user and offer the option to specify a location (optional).
-    Ensure the user provides all required details to proceed. Without the mandatory data (date, hour, email, name, and number of attendees), the request cannot be processed. Politely insist on completing the information.
-    Once the necessary information is collected:
-    Confirm the details with the user.
-    Format the gathered data into JSON with the following keys: date, hour, email, name, and location.
-    Upon confirmation, thank the user and assure them of your availability for future assistance.
-
-    Data Formatting:
-    Always present gathered information in JSON format with proper naming conventions:
-    Vacation Requests: date_start, date_end, name, email
-    Meeting Scheduling: date, hour, email, name, location
+    Remove any part that is not a plain text, such as images, tables, or code snippets, or any other non-text content.
     """
 
+    prompt = f"<|system|>{prompt}<|user|>{query}" #<|context|>{conversation_context}"
+
     body = {
-        "input": f"<|system|>{prompt}<|user|>{query}<|context|>{context}",
-        "parameters": {"decoding_method": "greedy", "max_new_tokens": 900},
+        "input": prompt, #f"<|system|>{prompt}<|user|>{query}<|context|>{context}",
+        "parameters": {
+            "decoding_method": "sample",
+            "max_new_tokens": 300,
+            "min_new_tokens": 0,
+            "stop_sequences": [],
+            "temperature": 0.3,
+            "top_k": 5,
+            "top_p": 1,
+            "repetition_penalty": 1
+	    },
+        #"parameters": {"decoding_method": "greedy", "max_new_tokens": 900},
         "model_id": "meta-llama/llama-3-70b-instruct",
         "project_id": WATSONX_PROJECT_ID
     }
@@ -133,8 +141,25 @@ def call_watsonx_llm(query, context):
     response = requests.post(url, headers=headers, json=body)
     
     data = response.json()
-    print("data: ", data)
-    return data['results'][0].get('generated_text', '') if 'results' in data else ''
+    #print("data: ", data)
+ 
+    # Extract response
+    assistant_response = data['results'][0].get('generated_text', '') if 'results' in data else ''
+
+    # Remove dirty strings from the response
+    assistant_response = assistant_response.replace("<|assistant|>", "").replace("<|user|>", "")
+    assistant_response = assistant_response.replace("<|assistant<|end_header_id|>>", "")
+
+    print("Assistant response: ", assistant_response)
+    
+    # Store the conversation in memory
+    conversation_memory.append({"question": user_query, "response": assistant_response})
+    
+    # Keep only the last 10 conversations
+    if len(conversation_memory) > 10:
+        conversation_memory.pop(0)
+    
+    return assistant_response
 
 # Configuration of the LLM model for LangChain
 class WatsonXLLM(BaseLLM):
@@ -142,7 +167,7 @@ class WatsonXLLM(BaseLLM):
     project_id: str = Field(default_factory=lambda: WATSONX_PROJECT_ID)
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
-        return call_watsonx_llm(prompt, "")
+        return call_watsonx_llm(prompt)
 
     def _generate(self, prompts: List[str], stop: Optional[List[str]] = None) -> LLMResult:
         generations = [Generation(text=self._call(prompt)) for prompt in prompts]
@@ -188,6 +213,10 @@ class Chatbot(Resource):
             if not query:
                 print("No query found in the data")
                 return {"error": "Query is required"}, 400
+            
+            # Store the user query in a global variable
+            global user_query
+            user_query = query
 
             # Create the QA chain
             print("Creating the QA chain...")
