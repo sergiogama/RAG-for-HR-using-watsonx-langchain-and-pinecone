@@ -143,6 +143,7 @@ ibm-rag-solution/
 ├── sample.env              # Sample environment variables file
 ├── .env                    # Environment variables
 └── README.md               # Project documentation
+└── data/                   # Dataset in PDF files to be upload to pinecone
 ```
 
 ---
