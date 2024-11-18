@@ -51,7 +51,7 @@ Before running the project, ensure you have the following:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/ibm-rag-solution.git
+git clone https://github.com/sergiogama/RAG-for-HR-using-watsonx-langchain-and-pinecone.git
 cd ibm-rag-solution
 ```
 
