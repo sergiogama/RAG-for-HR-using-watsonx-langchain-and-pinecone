@@ -1,9 +1,9 @@
 # 📚 RAG Solution for IBM Hackathon: Unlocking Knowledge with WatsonX.ai & Pinecone
 
 ## 🏆 Objective
-This project was developed for a global hackathon organized by IBM, aimed at promoting the adoption of **WatsonX.ai** and **WatsonX Assistant**. The solution addresses a common challenge within companies: providing employees with clear information on vacation policies and regulations. 
+This project was developed for a global hackathon organized by IBM, aimed at promoting the adoption of **WatsonX.ai** and **WatsonX Assistant**. The solution addresses a common challenge within companies: providing employees with clear information on vacation policies and regulations.
 
-The goal is to leverage a **Retrieval-Augmented Generation (RAG)** model to efficiently answer questions related to vacation rules using company documents. The solution uses **Pinecone** as a vector database, **WatsonX.ai** for the Large Language Model (LLM) using LLama, and **LangChain** as the orchestrator. 
+The goal is to leverage a **Retrieval-Augmented Generation (RAG)** model to efficiently answer questions related to vacation rules using company documents. The solution uses **Pinecone** as a vector database, **WatsonX.ai** for the Large Language Model (LLM) using LLama, and **LangChain** as the orchestrator.
 
 ---
 
@@ -109,6 +109,33 @@ curl http://localhost:8000/swagger.json | jq . > openapi.json
 
 ---
 
+## 🤖 Integrating with WatsonX Assistant
+
+### Step 1: Download the `openapi.json`
+Make sure the `openapi.json` file is up to date by running:
+```bash
+curl http://localhost:8000/swagger.json -o openapi.json
+```
+
+### Step 2: Import the OpenAPI File into WatsonX Assistant
+1. Log in to your **WatsonX Assistant** instance on the IBM Cloud.
+2. Create a new Assistant or open an existing one.
+3. Go to the **"Skills"** section and click on **"Create skill"**.
+4. Choose **"API Skill"** and select **"Import OpenAPI"**.
+5. Upload the `openapi.json` file from your local repository.
+6. Configure the **base URL** to point to your API:
+   ```
+   http://localhost:8000
+   ```
+7. Save the changes and test the integration.
+
+### Step 3: Configure WatsonX Assistant Dialogs
+- Once the OpenAPI skill is imported, you can use it in your assistant’s dialogs.
+- Use the **"Call API"** action within the dialog flow to send user queries to your RAG API.
+- The assistant will fetch responses from the `/api/chat` endpoint and display them to users.
+
+---
+
 ## 📄 Usage
 
 ### Endpoint: `/api/chat`
@@ -139,17 +166,12 @@ curl -X POST http://localhost:8000/api/chat -H "Content-Type: application/json" 
 ibm-rag-solution/
 ├── app.py                  # Main Flask API
 ├── upload_pdf.py           # Script to load PDFs into Pinecone
+├── openapi.json            # OpenAPI specification for WatsonX Assistant
 ├── requirements.txt        # Python dependencies
 ├── sample.env              # Sample environment variables file
 ├── .env                    # Environment variables
-└── README.md               # Project documentation
 └── data/                   # Dataset in PDF files to be upload to pinecone
 ```
-
----
-
-## 🤖 WatsonX Assistant Integration
-This API is designed to be integrated with **WatsonX Assistant**. Simply configure your WatsonX Assistant to make requests to the `/api/chat` endpoint to provide an interactive user experience.
 
 ---
 
@@ -167,6 +189,7 @@ If you encounter any issues:
 - [WatsonX.ai Documentation](https://cloud.ibm.com/docs/watsonx)
 - [LangChain Documentation](https://python.langchain.com/)
 - [Flask-RESTx Documentation](https://flask-restx.readthedocs.io/)
+- [WatsonX Assistant Documentation](https://cloud.ibm.com/docs/watson-assistant)
 
 ---
 
@@ -186,3 +209,11 @@ Special thanks to IBM for organizing this hackathon and promoting the adoption o
 ---
 
 Good luck with the hackathon, and may your solution stand out! 🚀
+```
+
+### Explanation of Changes:
+- Added a new section: **Integrating with WatsonX Assistant**.
+- Provided detailed steps on how to import the `openapi.json` file and set up the integration.
+- Updated the project structure to include the `openapi.json` file.
+
+This update should help users seamlessly integrate your RAG solution with WatsonX Assistant using the OpenAPI specification. Let me know if you need further adjustments! 😊
