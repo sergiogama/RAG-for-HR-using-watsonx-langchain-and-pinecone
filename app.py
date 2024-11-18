@@ -12,6 +12,7 @@ from langchain.llms.base import BaseLLM
 from langchain.schema import LLMResult, Generation
 from ibm_watsonx_ai.foundation_models.utils.enums import EmbeddingTypes
 from langchain_ibm import WatsonxEmbeddings
+from collections import deque
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -118,7 +119,7 @@ def call_watsonx_llm(query, context):
     """
 
     body = {
-        "input": f"<|system|>{prompt}<|user|>{query}<|context|>{context}",
+        "input": f"<;|system|>;{prompt}<;|user|>;{query}<;|context|>;{context}",
         "parameters": {"decoding_method": "greedy", "max_new_tokens": 900},
         "model_id": "meta-llama/llama-3-70b-instruct",
         "project_id": WATSONX_PROJECT_ID
@@ -165,12 +166,14 @@ def create_qa_chain():
         llm=llm,
         chain_type="stuff",
         retriever=retriever_vector,
-        return_source_documents=True
+        return_source_documents=True,
+        context=context
     )
     
 # API route for the chatbot
 @ns.route('/chat')
 class Chatbot(Resource):
+    context = deque(maxlen=5)  # Store up to 5 previous interactions
     @ns.expect(chat_model)
     def post(self):
         """Receive a query and return a response using RAG."""
@@ -189,13 +192,16 @@ class Chatbot(Resource):
                 print("No query found in the data")
                 return {"error": "Query is required"}, 400
 
+            # Add the current query to the context
+            self.context.append(query)
+
             # Create the QA chain
             print("Creating the QA chain...")
             qa_chain = create_qa_chain()
 
             # Generate response using the RetrievalQA chain
             print(f"Generating response for query: {query}")
-            result = qa_chain.invoke(query)
+            result = qa_chain.invoke(query, context=self.context)
 
             # Extracting the response
             if "result" not in result:
