@@ -104,6 +104,7 @@ The API will be available at `http://localhost:8000`.
   ```bash
   curl http://localhost:8000/swagger.json -o watsonx-openapi.json
   ```
+  Obs: You can use and test the file part of this repository
 
 ### Step 3: Create a WatsonX Assistant
 1. Log in to **WatsonX Assistant**.
@@ -112,19 +113,17 @@ The API will be available at `http://localhost:8000`.
 ### Step 4: Add a Custom Extension
 1. Go to the **Integrations** tab of your assistant.
 2. Click on **Build custom extension**.
-3. Use the downloaded `watsonx-openapi.json` file to create a custom extension named `watsonx`.
-4. Configure the extension:
-   - **Authentication**: Select `OAuth 2.0`.
-   - **Grant Type**: Choose `Custom apikey`.
-   - **API Key**: Paste your WatsonX API key.
-   - **Servers**: Select your region (`us-south`).
+3. Use the downloaded `openapi.json` file to create a custom extension named `RAG HR`.
 
-### Step 5: Upload Actions
-1. Go to **Actions -> Global Settings**.
-2. Upload the `watsonx-actions.json` file (included in this repository).
-3. Set the `watsonx_project_id` session variable using your Project ID.
+### Step 5: Upload WatsonX Assistant sample 
+1. Go to **Assistant settings -> Download/upload files**.
+2. Upload the `watsonx-actions.zip` file (included in this repository).
 
-### Step 6: Test the Assistant
+### Step 6: Configure action RAG HR search to use the extension 
+1. Go to **Step 3 -> Edit extension**.
+2. Configure the extesnsion and set the parameter, query to query_text.   
+
+### Step 7: Test the Assistant
 - Use the **Preview chat** feature to test the assistant.
 - If the actions do not work initially, refresh the chat and re-upload the actions.
 
